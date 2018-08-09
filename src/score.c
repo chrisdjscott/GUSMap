@@ -186,18 +186,16 @@ SEXP score_fs_scaled_err_c(SEXP r, SEXP epsilon, SEXP ref, SEXP alt, SEXP Kaa, S
   }
 
   // set up thread local array
-  double *score_c_thread = (double*) malloc(nthreads * nSnps_c * sizeof(double));
-  if (score_c_thread == NULL) {
-      Rprintf("Error allocating memory in score_fs_scaled_err_c\n");
-      exit(1);
-  }
-
+  double score_c_thread[nthreads * nSnps_c];
   #pragma omp parallel
   {
     // each thread initialises its own memory to zero (first touch)
     int tid = omp_get_thread_num();
     size_t thread_offset = (size_t) tid * nSnps_c;
-    memset(&score_c_thread[thread_offset], 0, nSnps_c * sizeof(double));
+    int i;
+    for (i = 0; i < nSnps_c; i++) {
+      score_c_thread[thread_offset + i] = 0.0;
+    }
   }
 
   // Now compute the likelihood and score function
@@ -300,7 +298,6 @@ SEXP score_fs_scaled_err_c(SEXP r, SEXP epsilon, SEXP ref, SEXP alt, SEXP Kaa, S
     // store in the output array
     pscore[snp_der] = score_c_thread[snp_der];
   }
-  free(score_c_thread);
   
   // revert to original num threads
   if (!parallel_c) {
