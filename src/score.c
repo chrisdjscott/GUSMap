@@ -28,6 +28,7 @@
 #else
     inline int omp_get_max_threads() { return 1; }
     inline void omp_set_num_threads(n) { return; }
+    inline int omp_get_thread_num() { return 0; }
 #endif
 
 
@@ -170,17 +171,28 @@ SEXP score_fs_scaled_err_c(SEXP r, SEXP epsilon, SEXP ref, SEXP alt, SEXP Kaa, S
   PROTECT(score = allocVector(REALSXP, nSnps_c));
   pscore = REAL(score);
   //SEXP pout = PROTECT(allocVector(VECSXP, 3));
-  double llval = 0, score_c[nSnps_c];
-  for(snp = 0; snp < nSnps_c; snp++){
-    score_c[snp] = 0;
+  double llval = 0;
+
+  // set the number of threads
+  int num_threads_orig, nthreads;
+  if (parallel_c) {
+    nthreads = omp_get_max_threads();
+  }
+  else {
+    // parallel disabled, force 1 thread
+    num_threads_orig = omp_get_max_threads();
+    nthreads = 1;
+    omp_set_num_threads(nthreads);
   }
 
-  // if required, temporarily disable openmp
-  int num_threads_orig = 0;
-  if (!parallel_c) {
-    num_threads_orig = omp_get_max_threads();
-    omp_set_num_threads(1);
+  // set up thread local array
+  double *score_c_thread = (double*) malloc(nthreads * nSnps_c * sizeof(double));
+  if (score_c_thread == NULL) {
+      Rprintf("Error allocating memory in score_fs_scaled_err_c\n");
+      exit(1);
   }
+  // initialise to zero
+  memset(score_c_thread, 0, nthreads * nSnps_c * sizeof(double));
   
   // Now compute the likelihood and score function
   #pragma omp parallel for reduction(+:llval) private(snp, snp_der)
@@ -189,6 +201,9 @@ SEXP score_fs_scaled_err_c(SEXP r, SEXP epsilon, SEXP ref, SEXP alt, SEXP Kaa, S
     double phi[4][nSnps_c], phi_prev[4][nSnps_c];
     double alphaTilde[4], alphaDot[4], sum, sum_der, w_new, w_prev;
     double delta;
+    // each thread populates its own part of the array, compute offset here
+    int tid = omp_get_thread_num();
+    size_t thread_offset = (size_t) tid * nSnps_c;
 
     // Compute forward probabilities at snp 1
     sum = 0;
@@ -258,27 +273,34 @@ SEXP score_fs_scaled_err_c(SEXP r, SEXP epsilon, SEXP ref, SEXP alt, SEXP Kaa, S
       sum_der = 0;
       for(s2 = 0; s2 < 4; s2++)
         sum_der = sum_der + phi[s2][snp_der]/w_prev;
-      #pragma omp atomic
-      score_c[snp_der] += sum_der;
+      score_c_thread[thread_offset + snp_der] += sum_der;
     }
     for(snp_der = nSnps_c-1; snp_der < nSnps_c; snp_der++){
       sum_der = 0;
       for(s2 = 0; s2 < 4; s2++)
         sum_der = sum_der + phi[s2][snp_der]/w_prev;
-      #pragma omp atomic
-      score_c[snp_der] += sum_der;
+      score_c_thread[thread_offset + snp_der] += sum_der;
     }
   }
   // Compute the score for each parameter
+  #pragma omp parallel for
   for(snp_der=0; snp_der < nSnps_c; snp_der++){
-    pscore[snp_der] = score_c[snp_der];
+    int tid;
+    // gather contributions from each thread
+    for (tid = 1; tid < nthreads; tid++) {
+      size_t thread_offset = (size_t) tid * nSnps_c;
+      score_c_thread[snp_der] += score_c_thread[thread_offset + snp_der];
+    }
+    // store in the output array
+    pscore[snp_der] = score_c_thread[snp_der];
   }
+  free(score_c_thread);
   
   // revert to original num threads
   if (!parallel_c) {
     omp_set_num_threads(num_threads_orig);
   }
-  
+
   // Clean up and return likelihood value
   //Rprintf("Likelihood value: %f\n", llval);
   UNPROTECT(1);
