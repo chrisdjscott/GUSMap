@@ -191,9 +191,15 @@ SEXP score_fs_scaled_err_c(SEXP r, SEXP epsilon, SEXP ref, SEXP alt, SEXP Kaa, S
       Rprintf("Error allocating memory in score_fs_scaled_err_c\n");
       exit(1);
   }
-  // initialise to zero
-  memset(score_c_thread, 0, nthreads * nSnps_c * sizeof(double));
-  
+
+  #pragma omp parallel
+  {
+    // each thread initialises its own memory to zero (first touch)
+    int tid = omp_get_thread_num();
+    size_t thread_offset = (size_t) tid * nSnps_c;
+    memset(&score_c_thread[thread_offset], 0, nSnps_c * sizeof(double));
+  }
+
   // Now compute the likelihood and score function
   #pragma omp parallel for reduction(+:llval) private(snp, snp_der)
   for(ind = 0; ind < nInd_c; ind++){
