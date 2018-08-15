@@ -4,7 +4,8 @@ Results comparing with the `opt_em` branch (before adding the nThreads option
 but that shouldn't affect performance). Results show the mean and standard
 error of 5 runs on Mahuika.
 
-Changes are in the `score_fs_scaled_err_c` function in `src/score.c`.
+Changes are in the `score_fs_scaled_err_c` function in `src/score.c`, see
+[here](https://github.com/chrisdjscott/GUSMap/compare/opt_em...openmp-thread-local).
 
 | Number of threads |  rfEst (optim) time with atomic (s) |  rfEst (optim) time without atomic (s) | 
 |-------------------|-------------------------------------|----------------------------------------| 
