@@ -100,11 +100,13 @@
 #' OPGP <- infer_OPGP_FS(F1data$ref, F1data$alt, config)
 #' 
 #' ## Estimate the recombination fractions
+#' ## Use all available OpenMP threads
 #' rf_est_FS(ref = list(F1data$ref), alt = list(F1data$alt), OPGP = list(OPGP), noFam = 1)
 #' ## To change the optimzation parameters 
 #' ## Max number of iterations for the EM algorithm set at 100
+#' ## Use 2 OpenMP threads
 #' rf_est_FS(ref = list(F1data$ref), alt = list(F1data$alt), OPGP = list(OPGP),
-#'   noFam = 1, maxit=100)
+#'   noFam = 1, nThreads=2, maxit=100)
 #' ## The algorithm will dtop when the difference between the likelihood at sucessive iterations is less
 #' ## than 0.00001
 #' rf_est_FS(ref = list(F1data$ref), alt = list(F1data$alt), OPGP = list(OPGP),
@@ -129,7 +131,8 @@
 #' 
 #' @export rf_est_FS
 rf_est_FS <- function(init_r=0.01, ep=0.001, ref, alt, OPGP,
-                      sexSpec=F, seqErr=T, trace=F, noFam=1, method = "optim", ...){
+                      sexSpec=F, seqErr=T, trace=F, noFam=1, method = "optim",
+                      nThreads=0, ...){
   
   ## Do some checks
   # if(!is.list(ref) | !is.list(alt) | !is.list(OPGP))
@@ -247,7 +250,7 @@ rf_est_FS <- function(init_r=0.01, ep=0.001, ref, alt, OPGP,
                          method="BFGS", control=optim.arg,
                          ref=ref,alt=alt,bcoef_mat=bcoef_mat,Kab=Kab,
                          nInd=nInd,nSnps=nSnps,OPGP=OPGP,noFam=noFam,
-                         seqErr=seqErr,extra=ep)
+                         seqErr=seqErr,extra=ep,nThreads=nThreads)
       toc()
     }
     # Print out the output from the optim procedure (if specified)
@@ -322,7 +325,7 @@ rf_est_FS <- function(init_r=0.01, ep=0.001, ref, alt, OPGP,
       optim.MLE <- optim(para,ll_fs_mp_scaled_err,method="BFGS",control=optim.arg,
                          ref=ref,alt=alt,bcoef_mat=bcoef_mat,Kab=Kab,
                          nInd=nInd,nSnps=nSnps,OPGP=OPGP,noFam=noFam,
-                         seqErr=seqErr)
+                         seqErr=seqErr,nThreads=nThreads)
     }
     # Print out the output from the optim procedure (if specified)
     if(trace){
@@ -381,7 +384,8 @@ rf_est_FS <- function(init_r=0.01, ep=0.001, ref, alt, OPGP,
     cat("RDEBUG: nInd:", class(unlist(nInd)), typeof(unlist(nInd)), "\n")
     cat("RDEBUG:", dim(unlist(nInd)), unlist(nInd)[1], "\n")
     EMout <- .Call("EM_HMM", init_r, ep, ref_mat, alt_mat, OPGPmat,
-                   noFam, unlist(nInd), nSnps, sexSpec, seqErr, EM.arg, as.integer(ss_rf))
+                   noFam, unlist(nInd), nSnps, sexSpec, seqErr, EM.arg, as.integer(ss_rf),
+                   nThreads)
     toc()
     
     EMout[[3]] = EMout[[3]] + sum(log(choose(ref_mat+alt_mat,ref_mat)))
@@ -402,7 +406,7 @@ rf_est_FS <- function(init_r=0.01, ep=0.001, ref, alt, OPGP,
 
 ## recombination estimates for case where the phase is unkonwn.
 ## The r.f.'s are sex-specific and constrained to the range [0,1]
-rf_est_FS_UP <- function(ref, alt, config, ep, method="optim", trace=F, ...){
+rf_est_FS_UP <- function(ref, alt, config, ep, method="optim", trace=F, nThreads=0, ...){
   
   ## Check imputs
   if( any( ref<0 | !is.finite(ref)) || any(!(ref == round(ref))))
@@ -525,7 +529,8 @@ rf_est_FS_UP <- function(ref, alt, config, ep, method="optim", trace=F, ...){
     library(tictoc)
     tic("RTIME: call to EM_HMM_UP")
     EMout <- .Call("EM_HMM_UP", rep(0.5,(nSnps-1)*2), ep, ref, alt, config,
-                   as.integer(1), nInd, nSnps, seqErr, EM.arg, as.integer(ss_rf))
+                   as.integer(1), nInd, nSnps, seqErr, EM.arg, as.integer(ss_rf),
+                   nThreads)
     toc()
     return(list(rf_p=EMout[[1]][ps],rf_m=EMout[[1]][nSnps-1+ms],
                 ep=EMout[[2]],

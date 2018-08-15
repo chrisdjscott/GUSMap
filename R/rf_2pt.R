@@ -1,6 +1,4 @@
 
-registerDoParallel(max(strtoi(Sys.getenv('OMP_NUM_THREADS')), 1))
-
 ## function needed for foreach loop
 comb <- function(...){
   mapply('rbind',...,SIMPLIFY=FALSE)
@@ -32,13 +30,10 @@ rf_2pt_single <- function(ref, alt, config, config_infer, group, group_infer, nC
   
   ## Set up the Clusters
 #  cl <- makeCluster(nClust)
-  ## NOTE: doSNOW not supported with MPI on Pan
-#  cat("Setting up the cluster 2:", max(strtoi(Sys.getenv('SLURM_CPUS_PER_TASK')), 1), "\n")
-#  cl <- makeSOCKcluster(max(strtoi(Sys.getenv('SLURM_CPUS_PER_TASK')), 1))
 #  registerDoSNOW(cl)
-  cat("Using doParallel instead of doSNOW - nClust is ignored, set number of threads with `OMP_NUM_THREADS` environment variable\n")
- 
-
+  ## NOTE: doSNOW not supported with MPI on Pan
+  cat("Using doParallel instead of doSNOW - will change back\n")
+  registerDoParallel(nClust)
 
   cat("\nComputing 2-point recombination fraction estimates ...\n")
   cat("Paternal informative SNPs\n")
@@ -55,23 +50,23 @@ rf_2pt_single <- function(ref, alt, config, config_infer, group, group_infer, nC
       rf.est1 <- optim(logit2(0.2), fn=ll_fs_mp_scaled_err, gr=score_fs_mp_scaled_err, method="BFGS",
                        ref=ref2,alt=alt2,bcoef_mat=bcoef_mat,Kab=Kab,
                        nInd=nInd,nSnps=nSnps,noFam=noFam,
-                       OPGP=list(as.integer(c(5,5) + 2*(config[ind]==3))), seqErr=F, parallel=F)
+                       OPGP=list(as.integer(c(5,5) + 2*(config[ind]==3))), seqErr=F, nThreads=1)
       rf.est2 <- optim(logit2(0.2), fn=ll_fs_mp_scaled_err, gr=score_fs_mp_scaled_err, method="BFGS",
                        ref=ref2,alt=alt2,bcoef_mat=bcoef_mat,Kab=Kab,
                        nInd=nInd,nSnps=nSnps,noFam=noFam,
-                       OPGP=list(as.integer(c(5,6) + 2*(config[ind]==3))), seqErr=F, parallel=F)
+                       OPGP=list(as.integer(c(5,6) + 2*(config[ind]==3))), seqErr=F, nThreads=1)
       rf.ind1 <- switch(which.min(c(rf.est1$value,rf.est2$value)), TRUE, FALSE)
       if(rf.ind1){
         rf[[1]][snp2] <- inv.logit2(rf.est1$par)
         rf[[2]][snp2] <-  -(rf.est1$value - 
                               ll_fs_mp_scaled_err(1000,ref=ref2,alt=alt2,bcoef_mat=bcoef_mat,Kab=Kab,
-                                                nInd=nInd,nSnps=nSnps,noFam=noFam,seqErr=F,parallel=F,
+                                                nInd=nInd,nSnps=nSnps,noFam=noFam,seqErr=F,nThreads=1,
                                                 OPGP=list(as.integer(c(5,5) + 2*(config[ind]==3)))))
       } else{
         rf[[1]][snp2] <- inv.logit2(rf.est2$par)
         rf[[2]][snp2] <-  -(rf.est2$value - 
                               ll_fs_mp_scaled_err(1000,ref=ref2,alt=alt2,bcoef_mat=bcoef_mat,Kab=Kab,
-                                                  nInd=nInd,nSnps=nSnps,noFam=noFam,seqErr=F,parallel=F,
+                                                  nInd=nInd,nSnps=nSnps,noFam=noFam,seqErr=F,nThreads=1,
                                                   OPGP=list(as.integer(c(5,6) + 2*(config[ind]==3)))))
       }
     }
@@ -95,23 +90,23 @@ rf_2pt_single <- function(ref, alt, config, config_infer, group, group_infer, nC
       rf.est1 <- optim(logit2(0.2), fn=ll_fs_mp_scaled_err, gr=score_fs_mp_scaled_err, method="BFGS",
                        ref=ref2,alt=alt2,bcoef_mat=bcoef_mat,Kab=Kab,
                        nInd=nInd,nSnps=nSnps,noFam=noFam,
-                       OPGP=list(as.integer(c(9,9) + 2*(config[ind]==5))), seqErr=F, parallel=F)
+                       OPGP=list(as.integer(c(9,9) + 2*(config[ind]==5))), seqErr=F, nThreads=1)
       rf.est2 <- optim(logit2(0.2), fn=ll_fs_mp_scaled_err, gr=score_fs_mp_scaled_err, method="BFGS",
                        ref=ref2,alt=alt2,bcoef_mat=bcoef_mat,Kab=Kab,
                        nInd=nInd,nSnps=nSnps,noFam=noFam,
-                       OPGP=list(as.integer(c(9,10) + 2*(config[ind]==5))), seqErr=F, parallel=F)
+                       OPGP=list(as.integer(c(9,10) + 2*(config[ind]==5))), seqErr=F, nThreads=1)
       rf.ind1 <- switch(which.min(c(rf.est1$value,rf.est2$value)), TRUE, FALSE)
       if(rf.ind1){
         rf[[1]][snp2] <- inv.logit2(rf.est1$par)
         rf[[2]][snp2] <-  -(rf.est1$value - 
                               ll_fs_mp_scaled_err(1000,ref=ref2,alt=alt2,bcoef_mat=bcoef_mat,Kab=Kab,
-                                                  nInd=nInd,nSnps=nSnps,noFam=noFam,seqErr=F,parallel=F,
+                                                  nInd=nInd,nSnps=nSnps,noFam=noFam,seqErr=F,nThreads=1,
                                                   OPGP=list(as.integer(c(9,9) + 2*(config[ind]==5)))))
       } else{
         rf[[1]][snp2] <- inv.logit2(rf.est2$par)
         rf[[2]][snp2] <-  -(rf.est2$value - 
                               ll_fs_mp_scaled_err(1000,ref=ref2,alt=alt2,bcoef_mat=bcoef_mat,Kab=Kab,
-                                                  nInd=nInd,nSnps=nSnps,noFam=noFam,seqErr=F,parallel=F,
+                                                  nInd=nInd,nSnps=nSnps,noFam=noFam,seqErr=F,nThreads=1,
                                                   OPGP=list(as.integer(c(9,10) + 2*(config[ind]==5)))))
       }
     }
@@ -136,31 +131,31 @@ rf_2pt_single <- function(ref, alt, config, config_infer, group, group_infer, nC
       temp1 <- optim(logit2(0.1), fn=ll_fs_mp_scaled_err, gr=score_fs_mp_scaled_err, method="BFGS",
                        ref=ref2,alt=alt2,bcoef_mat=bcoef_mat,Kab=Kab,
                        nInd=nInd,nSnps=nSnps,noFam=noFam,
-                       OPGP=list(as.integer(c(1,1))), seqErr=F, parallel=F)
+                       OPGP=list(as.integer(c(1,1))), seqErr=F, nThreads=1)
       temp2 <- optim(logit2(0.4), fn=ll_fs_mp_scaled_err, gr=score_fs_mp_scaled_err, method="BFGS",
                      ref=ref2,alt=alt2,bcoef_mat=bcoef_mat,Kab=Kab,
                      nInd=nInd,nSnps=nSnps,noFam=noFam,
-                     OPGP=list(as.integer(c(1,1))), seqErr=F, parallel=F)
+                     OPGP=list(as.integer(c(1,1))), seqErr=F, nThreads=1)
       rf.est1 <- switch(which.min(c(temp1$value,temp2$value)),temp1,temp2) 
       # phase 2
       temp1 <- optim(logit2(0.1), fn=ll_fs_mp_scaled_err, gr=score_fs_mp_scaled_err, method="BFGS",
                      ref=ref2,alt=alt2,bcoef_mat=bcoef_mat,Kab=Kab,
                      nInd=nInd,nSnps=nSnps,noFam=noFam,
-                     OPGP=list(as.integer(c(1,2))), seqErr=F, parallel=F)
+                     OPGP=list(as.integer(c(1,2))), seqErr=F, nThreads=1)
       temp2 <- optim(logit2(0.4), fn=ll_fs_mp_scaled_err, gr=score_fs_mp_scaled_err, method="BFGS",
                      ref=ref2,alt=alt2,bcoef_mat=bcoef_mat,Kab=Kab,
                      nInd=nInd,nSnps=nSnps,noFam=noFam,
-                     OPGP=list(as.integer(c(1,2))), seqErr=F, parallel=F)
+                     OPGP=list(as.integer(c(1,2))), seqErr=F, nThreads=1)
       rf.est2 <- switch(which.min(c(temp1$value,temp2$value)),temp1,temp2) 
       # phase 3
       temp1 <- optim(logit2(0.1), fn=ll_fs_mp_scaled_err, gr=score_fs_mp_scaled_err, method="BFGS",
                      ref=ref2,alt=alt2,bcoef_mat=bcoef_mat,Kab=Kab,
                      nInd=nInd,nSnps=nSnps,noFam=noFam,
-                     OPGP=list(as.integer(c(1,4))), seqErr=F, parallel=F)
+                     OPGP=list(as.integer(c(1,4))), seqErr=F, nThreads=1)
       temp2 <- optim(logit2(0.4), fn=ll_fs_mp_scaled_err, gr=score_fs_mp_scaled_err, method="BFGS",
                      ref=ref2,alt=alt2,bcoef_mat=bcoef_mat,Kab=Kab,
                      nInd=nInd,nSnps=nSnps,noFam=noFam,
-                     OPGP=list(as.integer(c(1,4))), seqErr=F, parallel=F)
+                     OPGP=list(as.integer(c(1,4))), seqErr=F, nThreads=1)
       rf.est4 <- switch(which.min(c(temp1$value,temp2$value)),temp1,temp2) 
       ## work out which is best
       rf.ind <- switch(which.min(c(rf.est1$value,rf.est2$value,rf.est4$value)), 1, 2, 3)
@@ -168,19 +163,19 @@ rf_2pt_single <- function(ref, alt, config, config_infer, group, group_infer, nC
         rf[[1]][snp2] <- inv.logit2(rf.est1$par)
         rf[[2]][snp2] <-  -(rf.est1$value - 
                               ll_fs_mp_scaled_err(1000,ref=ref2,alt=alt2,bcoef_mat=bcoef_mat,Kab=Kab,
-                                                  nInd=nInd,nSnps=nSnps,noFam=noFam,seqErr=F,parallel=F,
+                                                  nInd=nInd,nSnps=nSnps,noFam=noFam,seqErr=F,nThreads=1,
                                                   OPGP=list(as.integer(c(1,1)))))
       } else if(rf.ind == 2){
         rf[[1]][snp2] <- inv.logit2(rf.est2$par)
         rf[[2]][snp2] <-  -(rf.est2$value - 
                               ll_fs_mp_scaled_err(1000,ref=ref2,alt=alt2,bcoef_mat=bcoef_mat,Kab=Kab,
-                                                  nInd=nInd,nSnps=nSnps,noFam=noFam,seqErr=F,parallel=F,
+                                                  nInd=nInd,nSnps=nSnps,noFam=noFam,seqErr=F,nThreads=1,
                                                   OPGP=list(as.integer(c(1,2)))))
       } else{
         rf[[1]][snp2] <- inv.logit2(rf.est4$par)
         rf[[2]][snp2] <-  -(rf.est4$value - 
                               ll_fs_mp_scaled_err(1000,ref=ref2,alt=alt2,bcoef_mat=bcoef_mat,Kab=Kab,
-                                                  nInd=nInd,nSnps=nSnps,noFam=noFam,seqErr=F,parallel=F,
+                                                  nInd=nInd,nSnps=nSnps,noFam=noFam,seqErr=F,nThreads=1,
                                                   OPGP=list(as.integer(c(1,4)))))
       }
     }
@@ -204,23 +199,23 @@ rf_2pt_single <- function(ref, alt, config, config_infer, group, group_infer, nC
       rf.est1 <- optim(logit2(0.2), fn=ll_fs_mp_scaled_err, gr=score_fs_mp_scaled_err, method="BFGS",
                        ref=ref2,alt=alt2,bcoef_mat=bcoef_mat,Kab=Kab,
                        nInd=nInd,nSnps=nSnps,noFam=noFam,
-                       OPGP=list(as.integer(c(5,1) + 2*c(config[ind[[1]]]==3,0))), seqErr=F,parallel=F)
+                       OPGP=list(as.integer(c(5,1) + 2*c(config[ind[[1]]]==3,0))), seqErr=F,nThreads=1)
       rf.est2 <- optim(logit2(0.2), fn=ll_fs_mp_scaled_err, gr=score_fs_mp_scaled_err, method="BFGS",
                        ref=ref2,alt=alt2,bcoef_mat=bcoef_mat,Kab=Kab,
                        nInd=nInd,nSnps=nSnps,noFam=noFam,
-                       OPGP=list(as.integer(c(5,2) + 2*c(config[ind[[1]]]==3,0))), seqErr=F,parallel=F)
+                       OPGP=list(as.integer(c(5,2) + 2*c(config[ind[[1]]]==3,0))), seqErr=F,nThreads=1)
       rf.ind1 <- switch(which.min(c(rf.est1$value,rf.est2$value)), TRUE, FALSE)
       if(rf.ind1){
         rf[[1]][snp.bi] <- inv.logit2(rf.est1$par)
         rf[[2]][snp.bi] <-  -(rf.est1$value - 
                               ll_fs_mp_scaled_err(1000,ref=ref2,alt=alt2,bcoef_mat=bcoef_mat,Kab=Kab,
-                                                  nInd=nInd,nSnps=nSnps,noFam=noFam,seqErr=F,parallel=F,
+                                                  nInd=nInd,nSnps=nSnps,noFam=noFam,seqErr=F,nThreads=1,
                                                   OPGP=list(as.integer(c(5,1) + 2*c(config[ind[[1]]]==3,0)))))
       } else{
         rf[[1]][snp.bi] <- inv.logit2(rf.est2$par)
         rf[[2]][snp.bi] <-  -(rf.est2$value - 
                               ll_fs_mp_scaled_err(1000,ref=ref2,alt=alt2,bcoef_mat=bcoef_mat,Kab=Kab,
-                                                  nInd=nInd,nSnps=nSnps,noFam=noFam,seqErr=F,parallel=F,
+                                                  nInd=nInd,nSnps=nSnps,noFam=noFam,seqErr=F,nThreads=1,
                                                   OPGP=list(as.integer(c(5,2) + 2*c(config[ind[[1]]]==3,0)))))
       }
     }
@@ -241,23 +236,23 @@ rf_2pt_single <- function(ref, alt, config, config_infer, group, group_infer, nC
       rf.est1 <- optim(logit2(0.2), fn=ll_fs_mp_scaled_err, gr=score_fs_mp_scaled_err, method="BFGS",
                        ref=ref2,alt=alt2,bcoef_mat=bcoef_mat,Kab=Kab,
                        nInd=nInd,nSnps=nSnps,noFam=noFam,
-                       OPGP=list(as.integer(c(9,1) + 2*c(config[ind[[1]]]==5,0))), seqErr=F, parallel=F)
+                       OPGP=list(as.integer(c(9,1) + 2*c(config[ind[[1]]]==5,0))), seqErr=F, nThreads=1)
       rf.est2 <- optim(logit2(0.2), fn=ll_fs_mp_scaled_err, gr=score_fs_mp_scaled_err, method="BFGS",
                        ref=ref2,alt=alt2,bcoef_mat=bcoef_mat,Kab=Kab,
                        nInd=nInd,nSnps=nSnps,noFam=noFam,
-                       OPGP=list(as.integer(c(9,3) + 2*c(config[ind[[1]]]==5,0))), seqErr=F, parallel=F)
+                       OPGP=list(as.integer(c(9,3) + 2*c(config[ind[[1]]]==5,0))), seqErr=F, nThreads=1)
       rf.ind1 <- switch(which.min(c(rf.est1$value,rf.est2$value)), TRUE, FALSE)
       if(rf.ind1){
         rf[[1]][snp.bi] <- inv.logit2(rf.est1$par)
         rf[[2]][snp.bi] <-  -(rf.est1$value - 
                               ll_fs_mp_scaled_err(1000,ref=ref2,alt=alt2,bcoef_mat=bcoef_mat,Kab=Kab,
-                                                  nInd=nInd,nSnps=nSnps,noFam=noFam,seqErr=F,parallel=F,
+                                                  nInd=nInd,nSnps=nSnps,noFam=noFam,seqErr=F,nThreads=1,
                                                   OPGP=list(as.integer(c(9,1) + 2*c(config[ind[[1]]]==5,0)))))
       } else{
         rf[[1]][snp.bi] <- inv.logit2(rf.est2$par)
         rf[[2]][snp.bi] <-  -(rf.est2$value - 
                               ll_fs_mp_scaled_err(1000,ref=ref2,alt=alt2,bcoef_mat=bcoef_mat,Kab=Kab,
-                                                  nInd=nInd,nSnps=nSnps,noFam=noFam,seqErr=F,parallel=F,
+                                                  nInd=nInd,nSnps=nSnps,noFam=noFam,seqErr=F,nThreads=1,
                                                   OPGP=list(as.integer(c(9,3) + 2*c(config[ind[[1]]]==5,0)))))
       }
     }
@@ -279,29 +274,30 @@ rf_2pt_single <- function(ref, alt, config, config_infer, group, group_infer, nC
       rf.est1 <- optim(logit2(0.2), fn=ll_fs_mp_scaled_err, gr=score_fs_mp_scaled_err, method="BFGS",
                        ref=ref2,alt=alt2,bcoef_mat=bcoef_mat,Kab=Kab,
                        nInd=nInd,nSnps=nSnps,noFam=noFam,
-                       OPGP=list(as.integer(c(9,9) + 2*c(config[ind] %in% c(3,5)))), seqErr=F, parallel=F)
+                       OPGP=list(as.integer(c(9,9) + 2*c(config[ind] %in% c(3,5)))), seqErr=F, nThreads=1)
       rf.est2 <- optim(logit2(0.2), fn=ll_fs_mp_scaled_err, gr=score_fs_mp_scaled_err, method="BFGS",
                        ref=ref2,alt=alt2,bcoef_mat=bcoef_mat,Kab=Kab,
                        nInd=nInd,nSnps=nSnps,noFam=noFam,
-                       OPGP=list(as.integer(c(9,10) + 2*(config[ind] %in% c(3,5)))), seqErr=F, parallel=F)
+                       OPGP=list(as.integer(c(9,10) + 2*(config[ind] %in% c(3,5)))), seqErr=F, nThreads=1)
       rf.ind1 <- switch(which.min(c(rf.est1$value,rf.est2$value)), TRUE, FALSE)
       if(rf.ind1){
         rf[[1]][snp.pi] <- inv.logit2(rf.est1$par)
         rf[[2]][snp.pi] <-  -(rf.est1$value - 
                               ll_fs_mp_scaled_err(1000,ref=ref2,alt=alt2,bcoef_mat=bcoef_mat,Kab=Kab,
-                                                  nInd=nInd,nSnps=nSnps,noFam=noFam,seqErr=F,parallel=F,
+                                                  nInd=nInd,nSnps=nSnps,noFam=noFam,seqErr=F,nThreads=1,
                                                   OPGP=list(as.integer(c(9,9) + 2*c(config[ind] %in% c(3,5))))))
       } else{
         rf[[1]][snp.pi] <- inv.logit2(rf.est2$par)
         rf[[2]][snp.pi] <-  -(rf.est2$value - 
                               ll_fs_mp_scaled_err(1000,ref=ref2,alt=alt2,bcoef_mat=bcoef_mat,Kab=Kab,
-                                                  nInd=nInd,nSnps=nSnps,noFam=noFam,seqErr=F,parallel=F,
+                                                  nInd=nInd,nSnps=nSnps,noFam=noFam,seqErr=F,nThreads=1,
                                                   OPGP=list(as.integer(c(5,2) + 2*c(config[ind] %in% c(3,5))))))
       }
     }
     return(rf)
   }
 #  stopCluster(cl) 
+  stopImplicitCluster()
   
   ## Build the rf and LOD matrices
   origOrder <- order(c(indx_BI,indx_PI,indx_MI))
@@ -332,12 +328,10 @@ rf_2pt_multi <- function(ref, alt, config, group, nClust, noFam, init_r = 0.25){
   
   ## Set up the Clusters
 #  cl <- makeCluster(nClust)
-  ## NOTE: doSNOW not supported with MPI on Pan
-#  cat("Setting up the cluster:", max(strtoi(Sys.getenv('SLURM_CPUS_PER_TASK')), 1), "\n")
-#  cl <- makeSOCKcluster(max(strtoi(Sys.getenv('SLURM_CPUS_PER_TASK')), 1))
 #  registerDoSNOW(cl)
-  cat("Using doParallel instead of doSNOW - nClust is ignored, set number of threads with `OMP_NUM_THREADS` environment variable\n")
-
+  ## NOTE: doSNOW not supported with MPI on Pan
+  cat("Using doParallel instead of doSNOW - will change back\n")
+  registerDoParallel(nClust)
   
   cat("\nComputing 2-point recombination fraction estimates ...\n")
   cat("Paternal informative SNPs\n")
@@ -354,37 +348,37 @@ rf_2pt_multi <- function(ref, alt, config, group, nClust, noFam, init_r = 0.25){
         if(all(configFam[fam,] %in% c(2,3))){
           OPGP1 <- c(5,5) + 2*(configFam[fam,]==3)
           rf.est1 <- GUSMap:::rf_est_FS(init_r=init_r,ref=list(ref[[fam]][,ind]),alt=list(alt[[fam]][,ind]),
-                                        OPGP=list(OPGP1), epsilon=NULL)
+                                        OPGP=list(OPGP1), epsilon=NULL, nThreads=1)
           OPGP2 <- c(5,6) + 2*(configFam[fam,]==3)
           rf.est2 <- GUSMap:::rf_est_FS(init_r=init_r,ref=list(ref[[fam]][,ind]),alt=list(alt[[fam]][,ind]),
-                                        OPGP=list(OPGP2), epsilon=NULL)
+                                        OPGP=list(OPGP2), epsilon=NULL, nThreads=1)
           OPGP[[fam]] <- switch(which.min(c(rf.est1$loglik,rf.est2$loglik)), OPGP1, OPGP2)
         }
         else if(all(configFam[fam,]==1)){
           OPGP1 <- c(1,1)
           rf.est1 <- GUSMap:::rf_est_FS(init_r=init_r,ref=list(ref[[fam]][,ind]),alt=list(alt[[fam]][,ind]),
-                                      OPGP=list(OPGP1), epsilon=NULL)
+                                      OPGP=list(OPGP1), epsilon=NULL, nThreads=1)
           OPGP2 <- c(1,2)
           rf.est2 <- GUSMap:::rf_est_FS(init_r=init_r,ref=list(ref[[fam]][,ind]),alt=list(alt[[fam]][,ind]),
-                                      OPGP=list(OPGP2), epsilon=NULL)
+                                      OPGP=list(OPGP2), epsilon=NULL, nThreads=1)
           OPGP3 <- c(1,4)
           rf.est3 <- GUSMap:::rf_est_FS(init_r=init_r,ref=list(ref[[fam]][,ind]),alt=list(alt[[fam]][,ind]),
-                                        OPGP=list(OPGP3), epsilon=NULL)
+                                        OPGP=list(OPGP3), epsilon=NULL, nThreads=1)
           OPGP[[fam]] <- switch(which.min(c(rf.est1$loglik,rf.est2$loglik,rf.est3$loglik)), OPGP1, OPGP2, OPGP3)
         }
         else if(any(configFam[fam,] == 1) & any(configFam[fam,] %in% c(2,3))){
           OPGP1 <- c(1,1) + 4*(configFam[fam,]==2) + 6*(configFam[fam,]==3)
           rf.est1 <- GUSMap:::rf_est_FS(init_r=init_r,ref=list(ref[[fam]][,ind]),alt=list(alt[[fam]][,ind]),
-                                        OPGP=list(OPGP1), epsilon=NULL)
+                                        OPGP=list(OPGP1), epsilon=NULL, nThreads=1)
           OPGP2 <- c(1,2) + 4*(configFam[fam,]==2) + 6*(configFam[fam,]==3)
           rf.est2 <- GUSMap:::rf_est_FS(init_r=init_r,ref=list(ref[[fam]][,ind]),alt=list(alt[[fam]][,ind]),
-                                        OPGP=list(OPGP2), epsilon=NULL)
+                                        OPGP=list(OPGP2), epsilon=NULL, nThreads=1)
           OPGP[[fam]] <- switch(which.min(c(rf.est1$loglik,rf.est2$loglik)), OPGP1, OPGP2)
         }
       }
       rf.est <- GUSMap:::rf_est_FS(init_r=init_r,ref=lapply(ref[wFam], function(x) x[,ind]),
                                    alt=lapply(alt[wFam], function(x) x[,ind]),
-                                   OPGP=OPGP[wFam], epsilon=NULL, noFam=length(wFam))
+                                   OPGP=OPGP[wFam], epsilon=NULL, noFam=length(wFam), nThreads=1)
       rf[[1]][snp2] <- rf.est$rf
       rf[[2]][snp2] <- rf.est$LOD
     }
@@ -408,37 +402,37 @@ rf_2pt_multi <- function(ref, alt, config, group, nClust, noFam, init_r = 0.25){
         if(all(configFam[fam,] %in% c(4,5))){
           OPGP1 <- c(9,9) + 2*(configFam[fam,]==5)
           rf.est1 <- GUSMap:::rf_est_FS(init_r=init_r,ref=list(ref[[fam]][,ind]),alt=list(alt[[fam]][,ind]),
-                                        OPGP=list(OPGP1), epsilon=NULL)
+                                        OPGP=list(OPGP1), epsilon=NULL, nThreads=1)
           OPGP2 <- c(9,10) + 2*(configFam[fam,]==5)
           rf.est2 <- GUSMap:::rf_est_FS(init_r=init_r,ref=list(ref[[fam]][,ind]),alt=list(alt[[fam]][,ind]),
-                                        OPGP=list(OPGP2), epsilon=NULL)
+                                        OPGP=list(OPGP2), epsilon=NULL, nThreads=1)
           OPGP[[fam]] <- switch(which.min(c(rf.est1$loglik,rf.est2$loglik)), OPGP1, OPGP2)
         }
         else if(all(configFam[fam,]==1)){
           OPGP1 <- c(1,1)
           rf.est1 <- GUSMap:::rf_est_FS(init_r=init_r,ref=list(ref[[fam]][,ind]),alt=list(alt[[fam]][,ind]),
-                                        OPGP=list(OPGP1), epsilon=NULL)
+                                        OPGP=list(OPGP1), epsilon=NULL, nThreads=1)
           OPGP2 <- c(1,2)
           rf.est2 <- GUSMap:::rf_est_FS(init_r=init_r,ref=list(ref[[fam]][,ind]),alt=list(alt[[fam]][,ind]),
-                                        OPGP=list(OPGP2), epsilon=NULL)
+                                        OPGP=list(OPGP2), epsilon=NULL, nThreads=1)
           OPGP3 <- c(1,4)
           rf.est3 <- GUSMap:::rf_est_FS(init_r=init_r,ref=list(ref[[fam]][,ind]),alt=list(alt[[fam]][,ind]),
-                                        OPGP=list(OPGP3), epsilon=NULL)
+                                        OPGP=list(OPGP3), epsilon=NULL, nThreads=1)
           OPGP[[fam]] <- switch(which.min(c(rf.est1$loglik,rf.est2$loglik,rf.est3$loglik)), OPGP1, OPGP2, OPGP3)
         }
         else if(any(configFam[fam,] == 1) & any(configFam[fam,] %in% c(4,5))){
           OPGP1 <- c(1,1) + 8*(configFam[fam,]==4) + 10*(configFam[fam,]==5)
           rf.est1 <- GUSMap:::rf_est_FS(init_r=init_r,ref=list(ref[[fam]][,ind]),alt=list(alt[[fam]][,ind]),
-                                        OPGP=list(OPGP1), epsilon=NULL)
+                                        OPGP=list(OPGP1), epsilon=NULL, nThreads=1)
           OPGP2 <- c(1 + 8*(configFam[fam,1]==4) + 10*(configFam[fam,1]==5),3 + 7*(configFam[fam,2]==4) + 9*(configFam[fam,2]==5))
           rf.est2 <- GUSMap:::rf_est_FS(init_r=init_r,ref=list(ref[[fam]][,ind]),alt=list(alt[[fam]][,ind]),
-                                        OPGP=list(OPGP2), epsilon=NULL)
+                                        OPGP=list(OPGP2), epsilon=NULL, nThreads=1)
           OPGP[[fam]] <- switch(which.min(c(rf.est1$loglik,rf.est2$loglik)), OPGP1, OPGP2)
         }
       }
       rf.est <- GUSMap:::rf_est_FS(init_r=init_r,ref=lapply(ref[wFam], function(x) x[,ind]),
                                    alt=lapply(alt[wFam], function(x) x[,ind]),
-                                   OPGP=OPGP[wFam], epsilon=NULL, noFam=length(wFam))
+                                   OPGP=OPGP[wFam], epsilon=NULL, noFam=length(wFam), nThreads=1)
       rf[[1]][snp2] <- rf.est$rf
       rf[[2]][snp2] <- rf.est$LOD
     }
@@ -462,37 +456,37 @@ rf_2pt_multi <- function(ref, alt, config, group, nClust, noFam, init_r = 0.25){
         if(all(configFam[fam,]==1)){
           OPGP1 <- c(1,1)
           rf.est1 <- GUSMap:::rf_est_FS(init_r=init_r,ref=list(ref[[fam]][,ind]),alt=list(alt[[fam]][,ind]),
-                                        OPGP=list(OPGP1), epsilon=NULL)
+                                        OPGP=list(OPGP1), epsilon=NULL, nThreads=1)
           OPGP2 <- c(1,2)
           rf.est2 <- GUSMap:::rf_est_FS(init_r=init_r,ref=list(ref[[fam]][,ind]),alt=list(alt[[fam]][,ind]),
-                                        OPGP=list(OPGP2), epsilon=NULL)
+                                        OPGP=list(OPGP2), epsilon=NULL, nThreads=1)
           OPGP3 <- c(1,4)
           rf.est3 <- GUSMap:::rf_est_FS(init_r=init_r,ref=list(ref[[fam]][,ind]),alt=list(alt[[fam]][,ind]),
-                                        OPGP=list(OPGP3), epsilon=NULL)
+                                        OPGP=list(OPGP3), epsilon=NULL, nThreads=1)
           OPGP[[fam]] <- switch(which.min(c(rf.est1$loglik,rf.est2$loglik,rf.est3$loglik)), OPGP1, OPGP2, OPGP3)
         }
         else if( any(configFam[fam,]==1) & any(configFam[fam,]%in%c(2,3)) ){
           OPGP1 <- c(1,1) + 4*(configFam[fam,]==2) + 6*(configFam[fam,]==3)
           rf.est1 <- GUSMap:::rf_est_FS(init_r=init_r,ref=list(ref[[fam]][,ind]),alt=list(alt[[fam]][,ind]),
-                                        OPGP=list(OPGP1), epsilon=NULL)
+                                        OPGP=list(OPGP1), epsilon=NULL, nThreads=1)
           OPGP2 <- c(1,2) + 4*(configFam[fam,]==2) + 6*(configFam[fam,]==3)
           rf.est2 <- GUSMap:::rf_est_FS(init_r=init_r,ref=list(ref[[fam]][,ind]),alt=list(alt[[fam]][,ind]),
-                                        OPGP=list(OPGP2), epsilon=NULL)
+                                        OPGP=list(OPGP2), epsilon=NULL, nThreads=1)
           OPGP[[fam]] <- switch(which.min(c(rf.est1$loglik,rf.est2$loglik)), OPGP1, OPGP2)
         }
         else if( any(configFam[fam,]==1) & any(configFam[fam,]%in%c(4,5)) ){
           OPGP1 <- c(1,1) + 8*(configFam[fam,]==4) + 10*(configFam[fam,]==5)
           rf.est1 <- GUSMap:::rf_est_FS(init_r=init_r,ref=list(ref[[fam]][,ind]),alt=list(alt[[fam]][,ind]),
-                                        OPGP=list(OPGP1), epsilon=NULL)
+                                        OPGP=list(OPGP1), epsilon=NULL, nThreads=1)
           OPGP2 <- c(1 + 8*(configFam[fam,1]==4) + 10*(configFam[fam,1]==5),3 + 7*(configFam[fam,2]==4) + 9*(configFam[fam,2]==5))
           rf.est2 <- GUSMap:::rf_est_FS(init_r=init_r,ref=list(ref[[fam]][,ind]),alt=list(alt[[fam]][,ind]),
-                                        OPGP=list(OPGP2), epsilon=NULL)
+                                        OPGP=list(OPGP2), epsilon=NULL, nThreads=1)
           OPGP[[fam]] <- switch(which.min(c(rf.est1$loglik,rf.est2$loglik)), OPGP1, OPGP2)
         }
       }
       rf.est <- GUSMap:::rf_est_FS(init_r=init_r,ref=lapply(ref[wFam], function(x) x[,ind]),
                                    alt=lapply(alt[wFam], function(x) x[,ind]),
-                                   OPGP=OPGP[wFam], epsilon=NULL, noFam=length(wFam))
+                                   OPGP=OPGP[wFam], epsilon=NULL, noFam=length(wFam), nThreads=1)
       rf[[1]][snp2] <- rf.est$rf
       rf[[2]][snp2] <- rf.est$LOD
     }
@@ -516,28 +510,28 @@ rf_2pt_multi <- function(ref, alt, config, group, nClust, noFam, init_r = 0.25){
         if(all(configFam[fam,]==1)){
           OPGP1 <- c(1,1)
           rf.est1 <- GUSMap:::rf_est_FS(init_r=init_r,ref=list(ref[[fam]][,ind]),alt=list(alt[[fam]][,ind]),
-                                        OPGP=list(OPGP1), epsilon=NULL)
+                                        OPGP=list(OPGP1), epsilon=NULL, nThreads=1)
           OPGP2 <- c(1,2)
           rf.est2 <- GUSMap:::rf_est_FS(init_r=init_r,ref=list(ref[[fam]][,ind]),alt=list(alt[[fam]][,ind]),
-                                        OPGP=list(OPGP2), epsilon=NULL)
+                                        OPGP=list(OPGP2), epsilon=NULL, nThreads=1)
           OPGP3 <- c(1,4)
           rf.est3 <- GUSMap:::rf_est_FS(init_r=init_r,ref=list(ref[[fam]][,ind]),alt=list(alt[[fam]][,ind]),
-                                        OPGP=list(OPGP3), epsilon=NULL)
+                                        OPGP=list(OPGP3), epsilon=NULL, nThreads=1)
           OPGP[[fam]] <- switch(which.min(c(rf.est1$loglik,rf.est2$loglik,rf.est3$loglik)), OPGP1, OPGP2, OPGP3)
         }
         else if(any(configFam[fam,] == 1) & any(configFam[fam,] %in% c(2,3))){
           OPGP1 <- c(1,1) + 4*(configFam[fam,]==2) + 6*(configFam[fam,]==3)
           rf.est1 <- GUSMap:::rf_est_FS(init_r=init_r,ref=list(ref[[fam]][,ind]),alt=list(alt[[fam]][,ind]),
-                                        OPGP=list(OPGP1), epsilon=NULL)
+                                        OPGP=list(OPGP1), epsilon=NULL, nThreads=1)
           OPGP2 <- c(1,2) + 4*(configFam[fam,]==2) + 6*(configFam[fam,]==3)
           rf.est2 <- GUSMap:::rf_est_FS(init_r=init_r,ref=list(ref[[fam]][,ind]),alt=list(alt[[fam]][,ind]),
-                                        OPGP=list(OPGP2), epsilon=NULL)
+                                        OPGP=list(OPGP2), epsilon=NULL, nThreads=1)
           OPGP[[fam]] <- switch(which.min(c(rf.est1$loglik,rf.est2$loglik)), OPGP1, OPGP2)
         }
       }
       rf.est <- GUSMap:::rf_est_FS(init_r=init_r,ref=lapply(ref[wFam], function(x) x[,ind]),
                                    alt=lapply(alt[wFam], function(x) x[,ind]),
-                                   OPGP=OPGP[wFam], epsilon=NULL, noFam=length(wFam))
+                                   OPGP=OPGP[wFam], epsilon=NULL, noFam=length(wFam), nThreads=1)
       rf[[1]][snp.bi] <- rf.est$rf
       rf[[2]][snp.bi] <- rf.est$LOD
     }
@@ -558,28 +552,28 @@ rf_2pt_multi <- function(ref, alt, config, group, nClust, noFam, init_r = 0.25){
         if(all(configFam[fam,]==1)){
           OPGP1 <- c(1,1)
           rf.est1 <- GUSMap:::rf_est_FS(init_r=init_r,ref=list(ref[[fam]][,ind]),alt=list(alt[[fam]][,ind]),
-                                        OPGP=list(OPGP1), epsilon=NULL)
+                                        OPGP=list(OPGP1), epsilon=NULL, nThreads=1)
           OPGP2 <- c(1,2)
           rf.est2 <- GUSMap:::rf_est_FS(init_r=init_r,ref=list(ref[[fam]][,ind]),alt=list(alt[[fam]][,ind]),
-                                        OPGP=list(OPGP2), epsilon=NULL)
+                                        OPGP=list(OPGP2), epsilon=NULL, nThreads=1)
           OPGP3 <- c(1,4)
           rf.est3 <- GUSMap:::rf_est_FS(init_r=init_r,ref=list(ref[[fam]][,ind]),alt=list(alt[[fam]][,ind]),
-                                        OPGP=list(OPGP3), epsilon=NULL)
+                                        OPGP=list(OPGP3), epsilon=NULL, nThreads=1)
           OPGP[[fam]] <- switch(which.min(c(rf.est1$loglik,rf.est2$loglik,rf.est3$loglik)), OPGP1, OPGP2, OPGP3)
         }
         else if(any(configFam[fam,] == 1) & any(configFam[fam,] %in% c(4,5))){
           OPGP1 <- c(1,1) + 8*(configFam[fam,]==4) + 10*(configFam[fam,]==5)
           rf.est1 <- GUSMap:::rf_est_FS(init_r=init_r,ref=list(ref[[fam]][,ind]),alt=list(alt[[fam]][,ind]),
-                                        OPGP=list(OPGP1), epsilon=NULL)
+                                        OPGP=list(OPGP1), epsilon=NULL, nThreads=1)
           OPGP2 <- c(1 + 8*(configFam[fam,1]==4) + 10*(configFam[fam,1]==5),3 + 7*(configFam[fam,2]==4) + 9*(configFam[fam,2]==5))
           rf.est2 <- GUSMap:::rf_est_FS(init_r=init_r,ref=list(ref[[fam]][,ind]),alt=list(alt[[fam]][,ind]),
-                                        OPGP=list(OPGP2), epsilon=NULL)
+                                        OPGP=list(OPGP2), epsilon=NULL, nThreads=1)
           OPGP[[fam]] <- switch(which.min(c(rf.est1$loglik,rf.est2$loglik)), OPGP1, OPGP2)
         }
       }
       rf.est <- GUSMap:::rf_est_FS(init_r=init_r,ref=lapply(ref[wFam], function(x) x[,ind]),
                                     alt=lapply(alt[wFam], function(x) x[,ind]),
-                                    OPGP=OPGP[wFam], epsilon=NULL, noFam=length(wFam))
+                                    OPGP=OPGP[wFam], epsilon=NULL, noFam=length(wFam), nThreads=1)
       rf[[1]][snp.bi] <- rf.est$rf
       rf[[2]][snp.bi] <- rf.est$LOD
     }
@@ -600,15 +594,15 @@ rf_2pt_multi <- function(ref, alt, config, group, nClust, noFam, init_r = 0.25){
       for(fam in wFam){
         OPGP1 <- c(5,5) + 2*(configFam[fam,] %in% c(3,5))
         rf.est1 <- GUSMap:::rf_est_FS(init_r=init_r,ref=list(ref[[fam]][,ind]),alt=list(alt[[fam]][,ind]),
-                                      OPGP=list(OPGP1), epsilon=NULL)
+                                      OPGP=list(OPGP1), epsilon=NULL, nThreads=1)
         OPGP2 <- c(5,6) + 2*(configFam[fam,] %in% c(3,5))
         rf.est2 <- GUSMap:::rf_est_FS(init_r=init_r,ref=list(ref[[fam]][,ind]),alt=list(alt[[fam]][,ind]),
-                                      OPGP=list(OPGP2), epsilon=NULL)
+                                      OPGP=list(OPGP2), epsilon=NULL, nThreads=1)
         OPGP[[fam]] <- switch(which.min(c(rf.est1$loglik,rf.est2$loglik)), OPGP1, OPGP2)
       }
       rf.est <- GUSMap:::rf_est_FS(init_r=init_r,ref=lapply(ref[wFam], function(x) x[,ind]),
                                    alt=lapply(alt[wFam], function(x) x[,ind]),
-                                   OPGP=OPGP[wFam], epsilon=NULL, noFam=length(wFam))
+                                   OPGP=OPGP[wFam], epsilon=NULL, noFam=length(wFam), nThreads=1)
       rf[[1]][snp.pi] <- rf.est$rf
       rf[[2]][snp.pi] <- rf.est$LOD
     }
@@ -617,6 +611,7 @@ rf_2pt_multi <- function(ref, alt, config, group, nClust, noFam, init_r = 0.25){
   
   #rf.MI.PI <- replicate(2, matrix(NA, nrow=nSnps_MI, ncol=nSnps_PI),simplify=FALSE)
 #  stopCluster(cl) 
+  stopImplicitCluster()
   
   ## Build the rf and LOD matrices
   origOrder <- order(c(indx_BI,indx_PI,indx_MI))
