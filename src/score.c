@@ -178,7 +178,7 @@ SEXP score_fs_scaled_err_c(SEXP r, SEXP epsilon, SEXP ref, SEXP alt, SEXP Kaa, S
   }
   
   // set up thread local array
-  double score_c_thread[nthreads_c * nSnps_c];
+  double score_c_thread[nThreads_c * nSnps_c];
   #pragma omp parallel
   {
     // each thread initialises its own memory to zero (first touch)
@@ -286,7 +286,7 @@ SEXP score_fs_scaled_err_c(SEXP r, SEXP epsilon, SEXP ref, SEXP alt, SEXP Kaa, S
   for(snp_der=0; snp_der < nSnps_c; snp_der++){
     int tid;
     // gather contributions from each thread
-    for (tid = 1; tid < nthreads; tid++) {
+    for (tid = 1; tid < nThreads_c; tid++) {
       size_t thread_offset = (size_t) tid * nSnps_c;
       score_c_thread[snp_der] += score_c_thread[thread_offset + snp_der];
     }
