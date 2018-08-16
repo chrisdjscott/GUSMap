@@ -179,7 +179,7 @@ SEXP score_fs_scaled_err_c(SEXP r, SEXP epsilon, SEXP ref, SEXP alt, SEXP Kaa, S
   
   // set up thread local array
   double score_c_thread[nThreads_c * nSnps_c];
-  #pragma omp parallel
+  #pragma omp parallel num_threads(nThreads_c)
   {
     // each thread initialises its own memory to zero (first touch)
     int tid = omp_get_thread_num();
