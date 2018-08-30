@@ -51,7 +51,7 @@ Hotpaths output:
  . . . . . . . ?? (wrappers.R:83) 15.97     15.97
 ```
 
-Around 95% time spent in three lines in wrappers.R, inside `ll_fs_up_ss_scaled_err`:
+Around 90% time spent in three lines in wrappers.R, inside `ll_fs_up_ss_scaled_err`:
 
 ```r
 Kaa <- bcoef_mat*(1-ep)^ref*ep^alt
