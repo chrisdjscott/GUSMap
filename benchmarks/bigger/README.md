@@ -64,13 +64,14 @@ Kbb <- bcoef_mat*(1-ep)^alt*ep^ref
 
 ### Benchmark results
 
-Timings on Mahuika with 16 cores:
+Timings on Mahuika with 16 cores. The second column is with the likelihood function running in parallel
+with OpenMP. The third column adds in moving the calculation of `Kaa` and `Kbb` to C and using OpenMP.
 
-| Component | Original time (minutes) | Improved time (minutes) |
-|-----------|-------------------------|-------------------------|
-| rf_2pt    | 3.2                     | 3.2                     |
-| rf_est    | 480.9                   | 20.3                    |
-| Total     | 484.4                   | 23.7                    |
+| Component | Original time (mins) | Parallel likelihood time (mins) | Parallel likelihood and Kaa/Kbb time (mins) |
+|-----------|----------------------|---------------------------------|---------------------------------------------|
+| rf_2pt    | 3.2                  | 3.2                             | 3.2                                         |
+| rf_est    | 480.9                | 219.6                           | 20.3                                        |
+| Total     | 484.4                | 223.1                           | 23.7                                        |
 
 * `rf_est` ~24x faster
 * Overall ~20x faster
