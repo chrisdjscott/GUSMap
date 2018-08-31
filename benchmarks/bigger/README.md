@@ -78,5 +78,3 @@ with OpenMP. The third column adds in moving the calculation of `Kaa` and `Kbb` 
 * Two things contributing to speedup
   - Moving `Kaa` and `Kbb` array calculations to C
   - Parallelising the array calculations and likelihood calculation with OpenMP
-
-Need to confirm results are good - submit PR for Timothy to test.
